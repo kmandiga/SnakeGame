@@ -1,47 +1,59 @@
 /*
-Rough outline of the brain functionality. Right now if the arduino recieves a number between 0 and 4, it will print to the terminal a function.
-Eventually, this will change to control the motors based on the input.
+  Rough outline of the brain functionality. Right now if the arduino recieves a number between 0 and 4, it will print to the terminal a function.
+  Eventually, this will change to control the motors based on the input.
 */
 #include <ZumoMotors.h>
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(4,5);//Remember to cross RX and TX on other device
-int serialInput = 0;
+SoftwareSerial mySerial(4, 5); //Remember to cross RX and TX on other device, in this case, the ESP8266
+byte serialInput = 0;
 ZumoMotors motors;
+int ledPins[2] = {10, 11};
 
 void setup() {
-  motors.flipLeftMotor(true);
+  Serial.begin(9600);
   mySerial.begin(9600);
+  pinMode(ledPins[0], OUTPUT);
+  pinMode(ledPins[1], OUTPUT);
 
+  digitalWrite(ledPins[0], LOW);
+  digitalWrite(ledPins[1], LOW);
 }
 
 void loop() {
 
-  if(mySerial.available()){
+  if (mySerial.available() > 0) {
     serialInput = mySerial.read();
+    Serial.println(serialInput);
+    switch (serialInput) {
+      case 119:
+        //Move up if not moving up or down
+        Serial.println("UP");
+        digitalWrite(ledPins[0], LOW);
+        digitalWrite(ledPins[1], LOW);
+        break;
+      case 97:
+        //Move left if not moving left or right
+        Serial.println("LEFT");
+        digitalWrite(ledPins[0], LOW);
+        digitalWrite(ledPins[1], HIGH);
+        break;
+      case 115:
+        //Move down if not moving up or down
+        Serial.println("DOWN");
+        digitalWrite(ledPins[0], HIGH);
+        digitalWrite(ledPins[1], LOW);
+        break;
+      case 100:
+        //Move right if not moving left or right
+        Serial.println("RIGHT");
+        digitalWrite(ledPins[0], HIGH);
+        digitalWrite(ledPins[1], HIGH);
+        break;
+    }
+    delay(1000);
+    serialInput = 0;
+    digitalWrite(ledPins[0], LOW);
+    digitalWrite(ledPins[1], LOW);
   }
-  switch (serialInput) {
-    case 0:
-      //Continue as is
-      Serial.println("Continue");
-      break;
-    case 1:
-      //Move up if not moving up or down
-      Serial.println("Move up");
-      break;
-    case 2:
-      //Move left if not moving left or right
-      Serial.println("Move left");
-      break;
-    case 3:
-      //Move down if not moving up or down
-      Serial.println("Move down");
-      break;
-    case 4:
-      //Move right if not moving left or right
-      Serial.println("Move right");
-      break;
-  }
-  serialInput = 0;
-
 }
