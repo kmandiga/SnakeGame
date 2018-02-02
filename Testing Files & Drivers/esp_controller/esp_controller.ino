@@ -6,11 +6,11 @@ I found this code online. It is the basis for the communication using the nodeMC
 
 
 //EDIT THESE LINES TO MATCH YOUR SETUP
-#define MQTT_SERVER ""//Check Slack for IP (safety concern)
+#define MQTT_SERVER "172.25.159.71"
 const char* ssid = "UHWireless";
 const char* password = "";
 
-char* topic = "controls";
+char* topic = "test";
 
 
 WiFiClient wifiClient;
@@ -58,13 +58,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.println(payload[0]);
   
   //Print out some debugging info
-  /*Serial.println("Callback update.");
+  Serial.println("Callback update.");
   Serial.print("Topic: ");
   Serial.println(topicStr);
-  if(strcmp((char *)payload), "SUP" == 0)
-  {
-    Serial.println("SUP");
-  }
   //turn the light on if the payload is '1' and publish to the MQTT server a confirmation message
   if(payload[0] == '1'){
     //digitalWrite(lightPin, HIGH);
@@ -76,7 +72,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   else if (payload[0] == '0'){
     //digitalWrite(lightPin, LOW);
     client.publish("confirm", "Light Off");
-  }*/
+  }
 
 }
 
@@ -88,27 +84,27 @@ void reconnect() {
   //attempt to connect to the wifi if connection is lost
   if(WiFi.status() != WL_CONNECTED){
     //debug printing
-    //Serial.print("Connecting to ");
-    //Serial.println(ssid);
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
 
     //loop while we wait for connection
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-      //Serial.print(".");
+      Serial.print(".");
     }
 
     //print out some more debug once connected
-    //Serial.println("");
-    //Serial.println("WiFi connected");  
-    //Serial.println("IP address: ");
-    //Serial.println(WiFi.localIP());
+    Serial.println("");
+    Serial.println("WiFi connected");  
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
   }
 
   //make sure we are connected to WIFI before attemping to reconnect to MQTT
   if(WiFi.status() == WL_CONNECTED){
   // Loop until we're reconnected to the MQTT server
     while (!client.connected()) {
-      //Serial.print("Attempting MQTT connection...");
+      Serial.print("Attempting MQTT connection...");
 
       // Generate client name based on MAC address and last 8 bits of microsecond counter
       String clientName;
@@ -119,12 +115,14 @@ void reconnect() {
 
       //if connected, subscribe to the topic(s) we want to be notified about
       if (client.connect((char*) clientName.c_str())) {
-        //Serial.print("\tMTQQ Connected");
+        Serial.print("\tMTQQ Connected");
         client.subscribe(topic);
       }
 
       //otherwise print failed for debugging
-      else{/*Serial.println("\tFailed."); abort();*/}
+      else{
+        Serial.println("\tFailed."); abort();
+      }
     }
   }
 }
