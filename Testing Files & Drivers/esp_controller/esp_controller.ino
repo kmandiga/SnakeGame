@@ -1,5 +1,5 @@
 /*
-I found this code online. It is the basis for the communication using the nodeMCU.
+I found this code online. It is the basis for the communication using the nodeMCU. Use this code as a reference.
 */
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
