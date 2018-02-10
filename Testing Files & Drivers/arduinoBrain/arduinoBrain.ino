@@ -1,60 +1,134 @@
-    /*
-  Rough outline of the brain functionality. Right now if the arduino recieves a number between 0 and 4, it will print to the terminal a function.
-  Eventually, this will change to control the motors based on the input.
-*/
+#include <QTRSensors.h>
+#include <ZumoReflectanceSensorArray.h>
 #include <ZumoMotors.h>
 #include <SoftwareSerial.h>
-
-SoftwareSerial mySerial(2, 11); //Remember to cross RX and TX on other device, in this case, the ESP8266
+;
+SoftwareSerial mySerial(A1, A4); //2 is RX, A4 is TX, cross w/ RX and TX of other device
 byte serialInput = 0;
 ZumoMotors motors;
-int ledPins[2] = {10, 11};
+ZumoReflectanceSensorArray reflectanceSensors;
 
-void setup() {
+// Define an array for holding sensor values.
+#define NUM_SENSORS 6
+#define SPEED 100
+unsigned int sensorValues[NUM_SENSORS];
+int lastError = 0;
+void setup()
+{
   Serial.begin(9600);
   mySerial.begin(9600);
-  pinMode(ledPins[0], OUTPUT);
-  pinMode(ledPins[1], OUTPUT);
+  reflectanceSensors.init();
+  delay(500);
+  //Begin Calibration of line sensors
+  //All the sensors need to "see" the black and white
+  //have the robot placed in the middle of a line
+  //have the robot spin in place for 5 seconds slowly to auto calibrate
 
-  digitalWrite(ledPins[0], LOW);
-  digitalWrite(ledPins[1], LOW);
+  unsigned long startTime = millis();
+  motors.setLeftSpeed(100);
+  motors.setRightSpeed(-100);
+  while (millis() - startTime < 5000)  // make the calibration take 5 seconds
+  {
+    reflectanceSensors.calibrate();
+  }
+  motors.setLeftSpeed(0);
+  motors.setRightSpeed(0);
+
+  // print the calibration minimum values measured when emitters were on
+
+  for (byte i = 0; i < NUM_SENSORS; i++)
+  {
+    Serial.print(reflectanceSensors.calibratedMinimumOn[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+
+  // print the calibration maximum values measured when emitters were on
+  for (byte i = 0; i < NUM_SENSORS; i++)
+  {
+    Serial.print(reflectanceSensors.calibratedMaximumOn[i]);
+    Serial.print(' ');
+  }
+  Serial.println();
+  Serial.println();
+  delay(100);
+  //At this point calibration is done, so robot is ready to recieve instructions from ESP
 }
-
-void loop() {
-
+/*
+   The robot will always continue moving forward (using a PID)
+   If the user enters a or d, the robot needs to rotate left or right
+   The robot has to follow a line until it hits an intersection on the board
+   At the intersection, it will execute the rotation
+   once the rotation is properly executed, the robot needs to send a message to ESP (to be published to status/robotNo)
+   the message will say the turn was completed successfully
+   It will go straight (PID) after finishing the turn
+*/
+void loop()
+{
   if (mySerial.available() > 0) {
     serialInput = mySerial.read();
     Serial.println(serialInput);
     switch (serialInput) {
       case 119:
-        //Move up if not moving up or down
+        //Move up
+        
         motors.setLeftSpeed(100);
         motors.setRightSpeed(100);
         break;
       case 97:
-        //Move left if not moving left or right
+        //Move left
         motors.setLeftSpeed(-100);
         motors.setRightSpeed(100);
         delay(750);
-        motors.setLeftSpeed(0);
-        motors.setRightSpeed(0);
+        motors.setSpeeds(0,0);
+        
         break;
       case 115:
         //stop
-        motors.setLeftSpeed(0);
-        motors.setRightSpeed(0);
+        stopRobot();
         break;
       case 100:
-        //Move right if not moving left or right
+        //Move right
         motors.setLeftSpeed(100);
         motors.setRightSpeed(-100);
         delay(750);
-        motors.setLeftSpeed(0);
-        motors.setRightSpeed(0);        
+        motors.setSpeeds(0,0);
+        
         break;
     }
-    //delay(1000);
     serialInput = 0;
-    
   }
+  pid();
+  
+}
+void stopRobot()
+{
+  //motors.setLeftSpeed(0);
+  //motors.setRightSpeed(0);
+  motors.setSpeeds(0,0);
+  while (1) {};
+}
+void pid()
+{
+  int position = reflectanceSensors.readLine(sensorValues);
+  int error = position - 2500;
+  int speedDifference = error / 4 + 6 * (error - lastError);
+
+  lastError = error;
+  int m1Speed = SPEED + speedDifference;
+  int m2Speed = SPEED - speedDifference;
+
+  if (m1Speed < 0)
+    m1Speed = 0;
+  if (m2Speed < 0)
+    m2Speed = 0;
+  if (m1Speed > SPEED)
+    m1Speed = SPEED;
+  if (m2Speed > SPEED)
+    m2Speed = SPEED;
+  
+  motors.setSpeeds(m1Speed, m2Speed);
+
+
+
 }
